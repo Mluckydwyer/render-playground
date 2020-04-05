@@ -44,11 +44,17 @@ class vec3 {
       return e[0]*e[0] + e[1]*e[1] + e[2]*e[2]; 
     }
 
-    void write_color(std::ostream &out) {
+    void write_color(std::ostream &out, int samples_per_pixel) {
+      // Divide color by number of samples taken
+      auto scale = 1.0 / samples_per_pixel;
+      auto r = scale * e[0];
+      auto g = scale * e[1];
+      auto b = scale * e[2];
+
       // Write translated color value [0, 255] of each color component
-      out << static_cast<int>(255.99 * e[0]) << ' '
-          << static_cast<int>(255.99 * e[1]) << ' '
-          << static_cast<int>(255.99 * e[2]) << '\n';
+      out << static_cast<int>(256 * clamp(r, 0.0, 0.999)) << ' '
+          << static_cast<int>(256 * clamp(g, 0.0, 0.999)) << ' '
+          << static_cast<int>(256 * clamp(b, 0.0, 0.999)) << '\n';
     }
 
   public:
@@ -85,7 +91,7 @@ inline vec3 operator/(vec3 v, float t) {
   return (1/t) * v;
 }
 
-inline float dot(const vec3 &u, const vec3 &v) {
+inline double dot(const vec3 &u, const vec3 &v) {
   return u.e[0]*v.e[0]
        + u.e[1]*v.e[1]
        + u.e[2]*v.e[2];

@@ -16,7 +16,7 @@ $(BDIR)/%.o: $(SDIR)/%.cpp
 
 $(OUT): $(OBJS)
 	$(CC_LINUX) $(SDIR)/rt.cpp -o $(OUT)/rt
-	$(CC_WIN) $(SDIR)/rt.cpp -o $(OUT)/rt
+	$(CC_WIN) $(SDIR)/rt.cpp -o $(OUT)/rt.exe
 
 
 clean:
