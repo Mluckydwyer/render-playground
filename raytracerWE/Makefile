@@ -1,4 +1,6 @@
 
+.PHONY: clean
+
 OUT = lib
 BDIR = build
 SDIR= src
@@ -18,10 +20,15 @@ $(OUT): $(OBJS)
 	$(CC_LINUX) $(SDIR)/rt.cpp -o $(OUT)/rt
 	$(CC_WIN) $(SDIR)/rt.cpp -o $(OUT)/rt.exe
 
+$(SDIR)/%.h:
+	echo test
 
 clean:
-	rm -f $(BDIR)/*.o $(OUT)
+	rm -f $(BDIR)/*.o $(OUT)/*
 
+rebuild:
+	make clean
+	make
 
 # app: rt.o
 # 	g++ -o build/rt rt.cpp
