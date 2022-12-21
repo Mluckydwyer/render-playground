@@ -17,8 +17,8 @@ cudaError_t checkCuda(cudaError_t result) {
     return result;
 }
 
-__host__ __device__
-vec3 ray_color_scatter(const ray& r, const hittable& world, int depth) {
+__device__
+vec3 ray_color_scatter(const ray& r, const hittable& world, int depth, curandState s) {
 	hit_record rec;
 
 	// If bounce limit is exceeded, no light is gathered
@@ -28,8 +28,8 @@ vec3 ray_color_scatter(const ray& r, const hittable& world, int depth) {
 		ray scattered;
 		vec3 attenuation;
 
-		if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
-			return attenuation * ray_color_scatter(scattered, world, depth-1);
+		if (rec.mat_ptr->scatter(r, rec, attenuation, scattered, s))
+			return attenuation * ray_color_scatter(scattered, world, depth-1, s);
 		
 		return vec3(0, 0, 0);
 	}
@@ -53,6 +53,7 @@ void ray_color(vec3 colors[], const ray rays[], const hittable& world, int depth
 	vec3 temp_color(0, 0, 0);
 	ray r;
 	vec3 color;
+	curandState s = init_random(id);
 
 	for (int i = id; i < N; i += stride) {
 		r = rays[i];
@@ -61,8 +62,8 @@ void ray_color(vec3 colors[], const ray rays[], const hittable& world, int depth
 			ray scattered;
 			vec3 attenuation;
 
-			if (rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
-				*color = attenuation * ray_color_scatter(scattered, world, depth-1);
+			if (rec.mat_ptr->scatter(r, rec, attenuation, scattered, s)) {
+				color = attenuation * ray_color_scatter(scattered, world, depth-1, s);
 			}
 			else {
 				color = vec3(0, 0, 0);
@@ -78,6 +79,7 @@ void ray_color(vec3 colors[], const ray rays[], const hittable& world, int depth
 	}
 }
 
+__host__
 hittable_list random_scene() {
 	hittable_list world;
 
@@ -88,20 +90,20 @@ hittable_list random_scene() {
 
 	for (int a = -11; a < 11; a++) {
 		for (int b = -11; b < 11; b++) {
-			auto choose_mat = random_double();
-			vec3 center(a + 0.9*random_double(), 0.2, b + 0.9*random_double());
+			auto choose_mat = random_double_host();
+			vec3 center(a + 0.9*random_double_host(), 0.2, b + 0.9*random_double_host());
 
 			if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
 				if (choose_mat < 0.8) {
 					// Diffuse Material
-					auto albedo = vec3::random() * vec3::random();
+					auto albedo = vec3::random_host() * vec3::random_host();
 					lambertian diffuse_sphere_mat = lambertian(albedo);
 					sphere diffuse_sphere = sphere(center, 0.2, &diffuse_sphere_mat);
 					world.add(&diffuse_sphere);
 				} else if (choose_mat < 0.95) {
 					// Metal Material
 					auto albedo = vec3::random(0.5, 1);
-					auto fuzz = random_double(0, 0.5);
+					auto fuzz = random_double_host(0, 0.5);
 					metal metal_sphere_mat = metal(albedo, fuzz);
 					sphere metal_sphere = sphere(center, 0.2, &metal_sphere_mat);
 					world.add(&metal_sphere);
@@ -149,7 +151,7 @@ int main() {
 	
 	// Generating World
 	std::cerr << "Generating World...\n" << std::flush;
-	auto world = random_scene();
+	auto world = hittable_list_device(*random_scene());
 
 	// Adding objects to world
 	// hittable_list world;
@@ -185,8 +187,8 @@ int main() {
 		for (int i = 0; i < image_width; i++) {
 			vec3 color(0, 0, 0);
 			for (int s = 0; s < samples_per_pixel; ++s) {
-				auto u = (i + random_double()) / image_width;
-				auto v = (j + random_double()) / image_height;
+				auto u = (i + random_double_host()) / image_width;
+				auto v = (j + random_double_host()) / image_height;
 				rays[s + samples_per_pixel * (i + image_width * j)] = cam.get_ray(u, v);
 			}
 		}

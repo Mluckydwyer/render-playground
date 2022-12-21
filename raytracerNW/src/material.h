@@ -2,6 +2,7 @@
 #define MATERIAL_H
 
 #include "rtweekend.h"
+#include "texture.h"
 
 struct hit_record;
 
@@ -14,6 +15,10 @@ double schlick(double cosine, double ref_idx) {
 
 class material {
     public:
+        virtual color emitted(double u, double v, const point3& p) const {
+            return color(0, 0, 0);
+        }
+
         virtual bool scatter(
             const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
         ) const = 0;
@@ -21,19 +26,19 @@ class material {
 
 class lambertian : public material {
     public:
-        lambertian(const vec3& a) : albedo(a) {}
+        lambertian(shared_ptr<texture> a) : albedo(a) {}
 
         virtual bool scatter(
             const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
         ) const {
             vec3 scatter_direction = rec.normal + random_unit_vector();
             scattered = ray(rec.p, scatter_direction, r_in.time());
-            attenuation = albedo;
+            attenuation = albedo->value(rec.u, rec.v, rec.p);
             return true;
         }
     
     public:
-        vec3 albedo;
+        shared_ptr<texture> albedo;
 };
 
 class metal : public material {
@@ -94,6 +99,40 @@ class dielectric : public material {
     
     public:
         double ref_idx;
+};
+
+class diffuse_light : public material {
+    public:
+        diffuse_light(shared_ptr<texture> a) : emit(a) {}
+
+        virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        ) const {
+            return false;
+        }
+
+        virtual color emitted(double u, double v, const point3& p) const {
+            return emit->value(u, v, p);
+        }
+
+    public:
+        shared_ptr<texture> emit;
+};
+
+class isotropic : public material {
+    public:
+        isotropic(shared_ptr<texture> a) : albedo(a) {}
+
+        virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        ) const {
+            scattered = ray(rec.p, random_in_unit_sphere(), r_in.time());
+            attenuation = albedo->value(rec.u, rec.v, rec.p);
+            return true;
+        }
+
+    public:
+        shared_ptr<texture> albedo;
 };
 
 #endif

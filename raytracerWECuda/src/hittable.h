@@ -21,7 +21,7 @@ struct hit_record {
 class hittable {
     public:
         // ~hittable() {}
-        __device__ __host__ virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const = 0;
+        __host__ __device__ virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const = 0;
 };
 
 #endif

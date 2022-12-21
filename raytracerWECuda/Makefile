@@ -9,7 +9,7 @@ CDIR = comp
 CC_CUDA = nvcc
 CC_LINUX = g++
 CC_WIN = x86_64-w64-mingw32-g++ -static-libgcc -static-libstdc++
-INC = -Iinc -arch=sm_52 -keep -keep-dir $(CDIR)
+INC = -Iinc -arch=sm_52 -keep-dir $(CDIR)
 
 _OBJS = rt.o
 

@@ -4,6 +4,7 @@
 #include "sphere.h"
 #include "camera.h"
 #include "material.h"
+#include "texture.h"
 
 #include <iostream>
 
@@ -35,7 +36,7 @@ hittable_list random_scene() {
 
 	// Ground
 	world.add(make_shared<sphere>(
-		vec3(0, -1000, 0), 1000, make_shared<lambertian>(vec3(0.5, 0.5, 0.5))
+		vec3(0, -1000, 0), 1000, make_shared<lambertian>(make_shared<solid_color>(0.5, 0.5, 0.5))
 	));
 
 	int i = 0;

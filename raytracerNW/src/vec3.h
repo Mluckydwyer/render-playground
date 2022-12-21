@@ -71,6 +71,9 @@ class vec3 {
     double e[3];
 };
 
+using point3 = vec3; // 3D Point Alias
+using color = vec3; // RGB Color Alias
+
 // Utility functions
 
 inline std::ostream& operator<<(std::ostream &out, const vec3 &v) {

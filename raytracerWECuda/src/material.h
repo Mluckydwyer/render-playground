@@ -6,16 +6,17 @@
 struct hit_record;
 
 // Polynomial Approximation by Christophe Schlick
+__host__ __device__
 double schlick(double cosine, double ref_idx) {
     auto r0 = (1 - ref_idx) / (1 + ref_idx);
     r0 = r0*r0;
-    return r0 + (1 - r0) * pow((1 - cosine), 5);
+    return r0 + (1 - r0) * (1 - cosine) * (1 - cosine) * (1 - cosine) * (1 - cosine) * (1 - cosine);
 }
 
 class material {
     public:
-        __device__ __host__ virtual bool scatter(
-            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        __device__ virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState s
         ) const = 0;
 };
 
@@ -23,10 +24,10 @@ class lambertian : public material {
     public:
         lambertian(const vec3& a) : albedo(a) {}
 
-        __device__ __host__ virtual bool scatter(
-            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        __device__ virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState s
         ) const {
-            vec3 scatter_direction = rec.normal + random_unit_vector();
+            vec3 scatter_direction = rec.normal + random_unit_vector(s);
             scattered = ray(rec.p, scatter_direction);
             attenuation = albedo;
             return true;
@@ -40,11 +41,11 @@ class metal : public material {
     public:
         metal(const vec3& a, double f) : albedo(a), fuzz(f < 1 ? f : 1) {}
 
-        __device__ __host__ virtual bool scatter(
-            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        __device__ virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState s
         ) const {
             vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
-            scattered = ray(rec.p, reflected + fuzz*random_in_unit_sphere());
+            scattered = ray(rec.p, reflected + fuzz*random_in_unit_sphere(s));
             attenuation = albedo;
             return (dot(scattered.direction(), rec.normal) > 0);
         }
@@ -58,8 +59,8 @@ class dielectric : public material {
     public:
         dielectric(double ri) : ref_idx(ri) {}
 
-        __device__ __host__ virtual bool scatter(
-            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered
+        __device__ virtual bool scatter(
+            const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState s
         ) const {
             attenuation = vec3(1.0, 1.0, 1.0);
             double etai_over_etat;
@@ -81,7 +82,7 @@ class dielectric : public material {
             }
 
             double reflect_prob = schlick(cos_theta, etai_over_etat);
-            if (random_double() < reflect_prob) {
+            if (random_double(s) < reflect_prob) {
                 vec3 reflected = reflect(unit_direction, rec.normal);
                 scattered = ray(rec.p, reflected);
                 return true;
